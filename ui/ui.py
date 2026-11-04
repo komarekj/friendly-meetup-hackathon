@@ -7,7 +7,7 @@ import streamlit as st
 st.set_page_config(page_title="Parcel Pigeon Evals", layout="wide")
 st.title("🐦 Team Awesome Checkers: Judge the Agent")
 
-files = sorted(Path("results").glob("*.jsonl"), reverse=True)
+files = sorted((p for p in Path("results").glob("*.jsonl") if p.stem != "improve_log"), reverse=True)
 if not files:
     st.warning("No runs in results/ yet.")
     st.stop()
@@ -30,7 +30,7 @@ def table(rows):
     } for r in rows])
 
 
-tab1, tab2, tab3 = st.tabs(["Scorecard", "Before vs after", "Inspect a case"])
+tab1, tab2, tab3, tab4 = st.tabs(["Scorecard", "Before vs after", "Inspect a case", "🔁 Self-improvement"])
 
 with tab1:
     run = st.selectbox("Run", files, format_func=lambda p: p.stem)
@@ -70,3 +70,44 @@ with tab3:
     judge = r.get("judge") or {}
     st.markdown(f"**Judge:** {judge.get('score', '-')}/5, {judge.get('reason', '')}")
     st.json({"tool_calls": r["result"].get("tool_calls"), "checks": r.get("checks")})
+
+
+
+with tab4:
+    @st.fragment(run_every=2)
+    def live():
+        log_path = Path("results/improve_log.jsonl")
+        log_path = Path("results/improve_log.jsonl")
+        events = [json.loads(l) for l in log_path.open()] if log_path.exists() else []
+        if not events:
+            st.info("Start it with: uv run python improve.py 3")
+        else:
+            scores = [e for e in events if e["stage"] in ("baseline", "result")]
+            st.line_chart(pd.DataFrame({"pass rate": [e["passed"] for e in scores]}))
+            st.caption(f"Now: round {events[-1]['round']} · {events[-1]['stage']}")
+            for e in reversed(events):
+                r = e["round"]
+                if e["stage"] == "baseline":
+                    with st.expander(f"Round 0 · baseline {e['passed']}/{e['total']}"):
+                        for f in e["failures"]:
+                            st.markdown(f"❌ **{f['id']}**: {f['input']}")
+                            st.caption(f"Bot said: {f['answer'][:300]}")
+                elif e["stage"] == "plan":
+                    with st.expander(f"Round {r} · 🧠 agent's plan", expanded=True):
+                        for d in e.get("diagnosis") or []:
+                            st.markdown(f"- **{d.get('case')}**: {d.get('why_it_failed')}")
+                        st.info(e.get("plan"))
+                        a, b = st.columns(2)
+                        a.text_area("Old prompt", e["old_prompt"], height=200, key=f"o{e['t']}")
+                        b.text_area("New prompt", e["new_prompt"], height=200, key=f"n{e['t']}")
+                elif e["stage"] == "result":
+                    icon = "✅ kept" if e["kept"] else "↩️ reverted"
+                    st.markdown(f"**Round {r}: {e['previous']} → {e['passed']} ({icon})** "
+                                f"🟢 {', '.join(e['fixed']) or '-'} 🔴 {', '.join(e['broke']) or '-'}")
+                elif e["stage"] in ("thinking", "testing"):
+                    st.caption(f"Round {r}: {e['stage']}…")
+        
+    live()
+
+
+    
