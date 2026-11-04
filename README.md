@@ -6,7 +6,7 @@
 ## 🎯 What you'll build
 
 - A **test set** of customer questions
-- **Automatic checks** and an **AI judge** that grade every answer
+- **Automatic checks** that score answers against explicit rules
 - A **before/after scorecard** showing that your fix worked
 
 ## ⚙️ Setup (10 min)
@@ -17,7 +17,6 @@ You need: [Docker](https://docs.docker.com/get-docker/) and [uv](https://docs.as
 cp .env.example .env
 docker compose up -d                                   # starts local LLMs
 docker compose exec ollama ollama pull llama3.2:3b     # the agent (2 GB)
-docker compose exec ollama ollama pull qwen2.5:7b      # the judge (5 GB)
 uv run python -m agent.agent "How much is Next Day delivery?"
 ```
 
@@ -31,7 +30,7 @@ uv run python -m agent.agent "How much is Next Day delivery?"
 |---|---|---|
 | 1 | Meet the agent | 15 min |
 | 2 | Write the tests | 45 min |
-| 3 | Build the judge | 30 min |
+| 3 | Review the checks | 30 min |
 | 4 | Fix it and prove it | 30 min |
 | ⭐ | Bonus | Any time left |
 
@@ -44,24 +43,26 @@ uv run python -m agent.agent "How much is Next Day delivery?"
    uv run python -m evals.run --label baseline
    ```
 
+   Cases run in parallel batches of **5**, including their checks. Each batch finishes before the next starts. Use `--batch-size 1` for sequential runs, or set another batch size with `--batch-size <number>`.
+
 ✅ **Done when:** you see a scorecard. (➖ means "not scored yet". You'll fix that next.)
 
 ### Level 2: Write the tests
 
-1. In [evals/checks.py](evals/checks.py), implement `tool_called`.
+1. ✅ Implemented `tool_called` in [evals/checks.py](evals/checks.py).
 2. Add **at least one check of your own** (ideas in the file).
 3. Add **15+ cases** to [evals/cases.jsonl](evals/cases.jsonl) → [how to write good cases](docs/writing-cases.md)
 
 ✅ **Done when:** 20+ cases, and no ➖ in the Checks column.
 
-### Level 3: Build the judge
+### Level 3: Review the checks
 
-1. Complete the TODO in [evals/judge.py](evals/judge.py). The rubric is in [evals/rubric.md](evals/rubric.md).
-2. Run the full suite again.
-3. Read 3–4 of the judge's reasons in `results/`. Do you agree?
-4. Is one score enough? A customer, a support manager and a lawyer would each judge the same answer differently. Pick the perspectives that matter to you (readability is one) and decide how to measure each: a check, the judge, or a number. There's no single right set, so be creative.
+1. Run the full suite again.
+2. Read answers for 3–4 passing and failing cases in `results/` and compare them with each case's `expected` behaviour.
+3. Improve checks that miss incorrect answers or reject correct ones. Cases without implemented checks remain unscored (➖); `expected` text is for manual review only.
+4. Is one score enough? A customer, a support manager and a lawyer would each assess the same answer differently. Pick the perspectives that matter to you (readability is one) and decide how to measure each with checks or metrics.
 
-✅ **Done when:** every case with an `expected` field gets a score.
+✅ **Done when:** every case has an implemented check, and you've reviewed what those checks can miss.
 
 ### Level 4: Fix it and prove it
 
@@ -78,13 +79,13 @@ uv run python -m agent.agent "How much is Next Day delivery?"
 
 ### ⭐ Bonus
 
-Tracing, judge accuracy, model shoot-outs, red-teaming → [docs/stretch.md](docs/stretch.md)
+Tracing, check accuracy, model shoot-outs, red-teaming → [docs/stretch.md](docs/stretch.md)
 
 ## 🎤 Demo (3 min)
 
 - Your scorecard **before and after**
 - One **interesting failure**, and why it happened
-- **Do you trust your judge?** Why or why not?
+- **Do you trust your checks?** Why or why not?
 - **Which metrics did you choose**, and what did each one reveal?
 
 ## 🗂️ Project map
@@ -98,8 +99,6 @@ agent/                  the bot you're testing
 evals/                  your work happens here
 ├── cases.jsonl         test cases ← Level 2
 ├── checks.py           deterministic checks ← Level 2
-├── judge.py            LLM judge ← Level 3
-├── rubric.md           judge's marking scheme
 ├── run.py              runs everything → results/
 └── compare.py          before vs after
 docs/                   short guides
@@ -111,6 +110,6 @@ results/                saved runs (one file per run)
 | Problem | Try |
 |---|---|
 | Connection error | `docker compose ps` (is Ollama running?) and check `.env` |
-| Too slow | `--only <case-id>`, `--no-judge`, or a hosted model |
+| Too slow | `--only <case-id>`, increase `--batch-size`, or use a hosted model |
 | Model ignores tools | Normal for small models! That's a finding: put it in a test. |
 | Anything else | Grab an organiser 🙋 |

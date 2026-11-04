@@ -17,9 +17,8 @@ def not_contains(result: dict, value: str) -> bool:
     return value.lower() not in result["answer"].lower()
 
 
-def tool_called(result: dict, value: str) -> bool | None:
-    # TODO (Level 2): return True if the agent called the tool named `value`.
-    return None
+def tool_called(result: dict, value: str) -> bool:
+    return any(call["name"] == value for call in result["tool_calls"])
 
 
 # TODO (Level 2): add your own checks here, then register them below. Ideas:

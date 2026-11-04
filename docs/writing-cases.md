@@ -12,7 +12,7 @@ One case per line in `evals/cases.jsonl`:
 |---|---|
 | `id` | Short, unique name |
 | `input` | What the customer says |
-| `expected` | Ideal behaviour, in plain English (for the judge) |
+| `expected` | Ideal behaviour, in plain English, for manual review; does not affect the score |
 | `checks` | Deterministic checks to run (types live in `checks.py`) |
 | `tags` | Groups for the scorecard, e.g. `policy`, `safety` |
 
@@ -35,6 +35,7 @@ Aim for a mix. A test set of only easy questions tells you nothing.
 
 ## Tips
 
+- **Add checks to score a case.** A case without implemented checks remains unscored (➖), even if it has `expected` text.
 - **One behaviour per case.** Easier to see what broke.
 - **Check the truth.** Answers live in `agent/data/`, not in your memory.
 - **Make cases fail for the right reason.** If a check fails, read the answer: is the bot wrong, or your check?
