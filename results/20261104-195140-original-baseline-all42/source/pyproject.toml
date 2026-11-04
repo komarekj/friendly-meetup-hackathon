@@ -1,0 +1,16 @@
+[project]
+name = "agent-eval-harness"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.50",
+    "python-dotenv>=1.0",
+    "rich>=13",
+]
+
+[dependency-groups]
+# Stretch goal only: uv sync --group tracing
+tracing = [
+    "arize-phoenix-otel",
+    "openinference-instrumentation-openai",
+]
