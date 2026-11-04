@@ -2,7 +2,7 @@
 
 Start with a question: **is Parcel Pigeon's support bot ready to ship?** This walkthrough explains what we changed, how to explore the current code, and how to present the original demo without confusing its results with today's implementation.
 
-The historical findings below come from the supplied eight-page **Team Awesome Checkers: Judge the Agent** PDF. Code references describe the default branch at `3a00ff3`; the UI is supplied separately in [PR #3](https://github.com/komarekj/friendly-meetup-hackathon/pull/3). Commands are a walkthrough, not a record of newly executed evaluations.
+The historical findings below come from the supplied eight-page **Team Awesome Checkers: Judge the Agent** PDF. Code references describe the current checks-only harness, dashboard, and prompt-optimization loop. Commands are a walkthrough, not a record of newly executed evaluations.
 
 ## 1. Understand what changed
 
@@ -15,7 +15,8 @@ The historical findings below come from the supplied eight-page **Team Awesome C
 | Execution | Ordered results from parallel batches of five; sequential mode with `--batch-size 1` | [run.py](../evals/run.py) |
 | Review | Saved case/answer/check/tool-call data and before/after comparisons | [compare.py](../evals/compare.py) |
 | Judge experiment | 1–5 rubric, pass at ≥4, temperature 0, evidence from re-running the agent's tool calls | [historical judge implementation](https://github.com/komarekj/friendly-meetup-hackathon/blob/896b17600ee2943f70e45acefde54e5e5bfa66d5/evals/judge.py) |
-| Dashboard | Scorecard, Before vs after, and Inspect a case tabs | [UI source](https://github.com/komarekj/friendly-meetup-hackathon/blob/576d68a/ui/ui.py) |
+| Dashboard | Scorecard, Before vs after, Inspect a case, and live Self-improvement tabs | [UI source](../ui/ui.py) |
+| Prompt optimization | Propose, test, keep strict gains or revert, with backups and run history | [Self-improvement guide](self-improvement.md) |
 
 **Current scoring is checks-only.** The judge and rubric were removed in the follow-up consolidation. Do not configure a judge or pass `--judge`/`--no-judge` to the current runner. The judge discussion in the presentation is an experiment we learned from, not a current runtime dependency.
 
@@ -118,29 +119,20 @@ Saved files contain the case, agent answer and tool-call arguments, individual c
 
 ## 6. Open the dashboard
 
-The dashboard is in [UI PR #3](https://github.com/komarekj/friendly-meetup-hackathon/pull/3), not the default snapshot used above. It reads existing `results/*.jsonl` files; it does not run evaluations. Streamlit and pandas are not declared in the project's dependencies.
-
-If your checkout includes `ui/ui.py`, launch it from the repository root:
+The dashboard reads this checkout's `results/*.jsonl` files; it does not start evaluations. Launch it from the repository root with the optional UI dependencies:
 
 ```bash
-uv run --with streamlit --with pandas streamlit run ui/ui.py
+uv run --group ui streamlit run ui/ui.py
 ```
 
-To preview the UI branch before it is merged, keep the current checkout and its results in place. Create a separate UI worktree, then launch its script **while still in the current repository root**:
-
-```bash
-git fetch origin
-git worktree add --detach ../parcel-pigeon-eval-ui origin/feature/eval-ui
-uv run --with streamlit --with pandas streamlit run ../parcel-pigeon-eval-ui/ui/ui.py
-```
-
-This uses the current directory's `results/` with the UI script from the other branch. Open the local URL printed by Streamlit.
+Open the local URL printed by Streamlit. Results are resolved relative to the UI script's checkout, not the terminal's current directory.
 
 1. **Scorecard:** choose a saved run and inspect cases, checks, tools, and latency.
 2. **Before vs after:** choose a matched pair of runs and inspect changes.
 3. **Inspect a case:** show the customer question, expected behaviour, answer, tool-call arguments, and individual checks. Historical judged runs can also supply judge scores and reasons.
+4. **Self-improvement:** follow candidate/retained pass rates, diagnoses, old/new prompts, and fixed/broken cases. After configuring the optimizer, run `uv run python improve.py 3` in another terminal in this checkout. See the [complete setup and recovery guide](self-improvement.md).
 
-**Prototype limitations:** this version displays unscored cases as failures and includes them in the pass-rate denominator. Its comparison can label a newly added or previously unscored case as “fixed”. Its judge-average field remains present when current checks-only results have no scores. Use the CLI and saved JSONL as the source of truth for these distinctions; do not equate a missing judge score with a zero.
+The dashboard excludes unscored cases from pass-rate denominators, distinguishes added/removed cases from fixes/regressions, and hides judge averages when no judge scores exist. The improvement log is separate from evaluation runs; the page also works before any results exist and refreshes every two seconds.
 
 ## 7. Present the original demo honestly
 
