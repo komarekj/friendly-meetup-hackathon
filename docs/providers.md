@@ -4,8 +4,9 @@ The project works with **any provider that offers an OpenAI-compatible API**. Se
 
 ```bash
 AGENT_BASE_URL=...   AGENT_API_KEY=...   AGENT_MODEL=...
-JUDGE_BASE_URL=...   JUDGE_API_KEY=...   JUDGE_MODEL=...
 ```
+
+For optional LLM grading (`uv run python -m evals.run --judge`), also set `JUDGE_BASE_URL`, `JUDGE_API_KEY` and `JUDGE_MODEL`. These are not needed for the default checks-only mode. The judge model must support JSON responses; a different, stronger model can be useful.
 
 | Provider | Base URL |
 |---|---|
@@ -19,7 +20,5 @@ JUDGE_BASE_URL=...   JUDGE_API_KEY=...   JUDGE_MODEL=...
 ## Tips
 
 - The **agent** model must support **tool calling**.
-- The **judge** works best as a **different, stronger** model than the agent.
-- Mixing is fine: e.g. a local agent with a hosted judge.
 - **Local and slow?** On a Mac, Docker can't use the GPU. A hosted model, or Ollama's native app, will be much faster.
 - **Never commit `.env`.** It's already in `.gitignore`.
