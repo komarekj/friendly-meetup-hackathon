@@ -8,19 +8,15 @@ DATA = Path(__file__).parent / "data"
 ORDERS = {o["order_id"]: o for o in json.loads((DATA / "orders.json").read_text())}
 POLICY_SECTIONS = ["## " + s for s in (DATA / "policies.md").read_text().split("\n## ")[1:]]
 STOPWORDS = {"a", "an", "the", "is", "are", "my", "i", "do", "does", "can", "to", "of", "for", "how", "what", "it", "on", "in", "and", "you"}
+PRIVATE_FIELDS = {"customer_name", "address"}
 
 
 def _words(text: str) -> set[str]:
     return set(re.findall(r"[a-z]+", text.lower())) - STOPWORDS
 
 
-# def get_order(order_id: str) -> str:
-#     order = ORDERS.get(order_id.strip().upper())
-#     return json.dumps(order) if order else f"No order found with ID {order_id}."
-
-# Level 4 Addition: Mask user private information
-PRIVATE_FIELDS = {"customer_name", "address"}
 def get_order(order_id: str) -> str:
+    """Look up an order without exposing customer names or addresses to the model."""
     order = ORDERS.get(order_id.strip().upper())
     if not order:
         return f"No order found with ID {order_id}."

@@ -59,20 +59,10 @@ uv run python -m agent.agent "How much is Next Day delivery?"
 
 1. Run the full suite again.
 2. Read answers for 3–4 passing and failing cases in `results/` and compare them with each case's `expected` behaviour.
-3. Improve checks that miss incorrect answers or reject correct ones. By default, cases without implemented checks remain unscored (➖); `expected` text is for manual review. Optional LLM judging is available with `--judge` (see below).
+3. Improve checks that miss incorrect answers or reject correct ones. Cases without implemented checks remain unscored (➖); `expected` text is for manual review only.
 4. Is one score enough? A customer, a support manager and a lawyer would each assess the same answer differently. Pick the perspectives that matter to you (readability is one) and decide how to measure each with checks or metrics.
 
 ✅ **Done when:** every case has an implemented check, and you've reviewed what those checks can miss.
-
-#### Optional: LLM-as-judge
-
-Configure `JUDGE_BASE_URL`, `JUDGE_API_KEY` and `JUDGE_MODEL` in `.env` (see [.env.example](.env.example)). For the example's local model, first pull it with `docker compose exec ollama ollama pull qwen2.5:7b`.
-
-```bash
-uv run python -m evals.run --label judged --judge
-```
-
-The judge compares answers with `expected`, the [rubric](evals/rubric.md), and retrieved source data. A case passes only when all checks and the judge pass (score ≥ 4/5). Judging runs within the same parallel batches. Without `--judge`, no judge model is called or configured. Use the same scoring mode for before/after comparisons.
 
 ### Level 4: Fix it and prove it
 
@@ -109,8 +99,6 @@ agent/                  the bot you're testing
 evals/                  your work happens here
 ├── cases.jsonl         test cases ← Level 2
 ├── checks.py           deterministic checks ← Level 2
-├── judge.py            optional LLM grading (--judge)
-├── rubric.md           grading criteria for the optional judge
 ├── run.py              runs everything → results/
 └── compare.py          before vs after
 docs/                   short guides
