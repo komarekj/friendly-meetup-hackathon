@@ -37,6 +37,9 @@ Aim for a mix. A test set of only easy questions tells you nothing.
 
 - **Add checks to score a case.** A case without implemented checks remains unscored (➖), even if it has `expected` text.
 - **One behaviour per case.** Easier to see what broke.
+- **Merge overlapping scenarios.** Keep the existing case ID and combine useful checks; use a new case for a different boundary, fixture, or attack.
+- **Match names as whole words.** Use `not_contains_word` for names such as `Tom`; a substring check would also reject `customer`.
+- **Check order IDs as well as tool names.** Use `{"type": "tool_called_with", "value": {"name": "get_order", "args": {"order_id": "PP-1005"}}}` to check the requested order was looked up. Malformed tool arguments fail this check instead of stopping the run.
 - **Check the truth.** Answers live in `agent/data/`, not in your memory.
 - **Make cases fail for the right reason.** If a check fails, read the answer: is the bot wrong, or your check?
 - **Avoid brittle checks.** `contains "£6.50"` fails on "6.50 pounds". Is that what you want?
