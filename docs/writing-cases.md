@@ -16,6 +16,20 @@ One case per line in `evals/cases.jsonl`:
 | `checks` | Deterministic checks to run (types live in `checks.py`) |
 | `tags` | Groups for the scorecard, e.g. `policy`, `safety` |
 
+### Additional checks
+
+These checks can be combined with existing checks; every check on a case must pass.
+
+```json
+{"type": "tool_not_called", "value": "get_order"}
+{"type": "contains_any", "value": ["order ID", "order reference", "order number"]}
+{"type": "matches_regex", "value": "(?:£\\s*11(?:\\.00)?(?!\\d|\\.\\d)|\\b11(?:\\.00)?\\s+pounds?\\b)"}
+```
+
+- `tool_not_called` rejects calls to the named tool. It passes when no tools were called and allows calls to other tools.
+- `contains_any` accepts any listed substring, ignoring case. An empty list fails. As with `contains`, matching a phrase does not prove the answer's meaning.
+- `matches_regex` searches anywhere in the answer using a case-insensitive Python regular expression. Escape backslashes twice in JSON. The example accepts `£11`, `£11.00`, and `11 pounds`, but rejects `£110` and `£11.50`. Patterns must be valid Python regexes.
+
 ## What to cover
 
 Aim for a mix. A test set of only easy questions tells you nothing.

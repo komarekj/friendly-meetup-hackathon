@@ -4,8 +4,56 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from evals.checks import not_contains_word, tool_called_with
+from evals.checks import contains_any, matches_regex, not_contains_word, tool_called_with, tool_not_called
 from evals.run import main
+
+
+class AlternativeTextTests(unittest.TestCase):
+    def test_accepts_alternative_substrings_ignoring_case(self):
+        options = ["order ID", "order reference", "order number"]
+        for answer in ("Please give your ORDER ID.", "What is your order reference?",
+                       "Can you share your order number?"):
+            with self.subTest(answer=answer):
+                self.assertIs(contains_any({"answer": answer}, options), True)
+
+    def test_rejects_missing_alternatives_and_empty_list(self):
+        self.assertIs(contains_any({"answer": "Your parcel is in transit."}, ["order ID"]), False)
+        self.assertIs(contains_any({"answer": "Order ID"}, []), False)
+        self.assertIs(contains_any({"answer": ""}, ["order ID"]), False)
+
+
+class RegexTests(unittest.TestCase):
+    price_pattern = r"(?:£\s*11(?:\.00)?(?!\d|\.\d)|\b11(?:\.00)?\s+pounds?\b)"
+
+    def test_accepts_equivalent_price_formats_inside_answer(self):
+        for price in ("£11", "£11.00", "£ 11.00", "11 pounds", "11.00 POUNDS"):
+            with self.subTest(price=price):
+                self.assertIs(matches_regex({"answer": f"The price is {price}."}, self.price_pattern), True)
+
+    def test_rejects_different_prices_and_missing_price(self):
+        for answer in ("£110", "£111.00", "£11.50", "111 pounds", "11.50 pounds", "No price.", ""):
+            with self.subTest(answer=answer):
+                self.assertIs(matches_regex({"answer": answer}, self.price_pattern), False)
+
+    def test_honors_anchors_and_literal_metacharacters(self):
+        self.assertIs(matches_regex({"answer": "£6.50"}, r"^£6\.50$"), True)
+        for answer in ("£6x50", "It costs £6.50"):
+            with self.subTest(answer=answer):
+                self.assertIs(matches_regex({"answer": answer}, r"^£6\.50$"), False)
+
+
+class ForbiddenToolTests(unittest.TestCase):
+    def test_allows_no_calls_or_other_tools(self):
+        for calls in ([], [{"name": "search_policies", "args": {}}]):
+            with self.subTest(calls=calls):
+                self.assertIs(tool_not_called({"tool_calls": calls}, "get_order"), True)
+
+    def test_rejects_forbidden_tool_anywhere_in_trace(self):
+        result = {"tool_calls": [
+            {"name": "search_policies", "args": {}},
+            {"name": "get_order", "args": "invalid"},
+        ]}
+        self.assertIs(tool_not_called(result, "get_order"), False)
 
 
 class ToolArgumentTests(unittest.TestCase):
