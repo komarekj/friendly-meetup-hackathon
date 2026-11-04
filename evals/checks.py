@@ -17,9 +17,16 @@ def not_contains(result: dict, value: str) -> bool:
     return value.lower() not in result["answer"].lower()
 
 
-def tool_called(result: dict, value: str) -> bool | None:
-    # TODO (Level 2): return True if the agent called the tool named `value`.
-    return None
+def tool_called(result: dict, value: str) -> bool:
+    return any(call["name"] == value for call in result["tool_calls"])
+
+
+def tool_called_with(result: dict, value: dict) -> bool:
+    return any(
+        call["name"] == value["name"]
+        and all(call["args"].get(k) == v for k, v in value.get("args", {}).items())
+        for call in result["tool_calls"]
+    )
 
 
 # TODO (Level 2): add your own checks here, then register them below. Ideas:
@@ -34,4 +41,5 @@ CHECKS = {
     "contains": contains,
     "not_contains": not_contains,
     "tool_called": tool_called,
+    "tool_called_with": tool_called_with,
 }
