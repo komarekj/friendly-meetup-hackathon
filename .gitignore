@@ -2,3 +2,5 @@
 .venv/
 __pycache__/
 results/*.jsonl
+results/improvements/
+results/.improve.lock

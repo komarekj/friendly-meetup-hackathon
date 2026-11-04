@@ -93,6 +93,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--label", default="run", help="name for this run, e.g. baseline")
     parser.add_argument("--cases", default=ROOT / "evals" / "cases.jsonl", type=Path)
+    parser.add_argument("--output", type=Path, help="exact JSONL destination (used by improve.py)")
     parser.add_argument("--only", help="run a single case by id")
     parser.add_argument("--batch-size", type=int, default=5,
                         help="cases to run in parallel per batch (default: 5; use 1 for sequential)")
@@ -111,10 +112,10 @@ def main() -> None:
 
     print_scorecard(rows)
 
-    out = ROOT / "results" / f"{datetime.now():%Y%m%d-%H%M%S}-{args.label}.jsonl"
-    out.parent.mkdir(exist_ok=True)
+    out = args.output or ROOT / "results" / f"{datetime.now():%Y%m%d-%H%M%S}-{args.label}.jsonl"
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
-    console.print(f"Saved: {out.relative_to(ROOT)}")
+    console.print(f"Saved: {out}")
 
 
 if __name__ == "__main__":

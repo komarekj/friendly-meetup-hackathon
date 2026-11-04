@@ -9,6 +9,7 @@ dependencies = [
 ]
 
 [dependency-groups]
+ui = ["streamlit>=1.40", "pandas>=2", "streamlit-autorefresh>=1.0.1"]
 # Stretch goal only: uv sync --group tracing
 tracing = [
     "arize-phoenix-otel",
