@@ -17,6 +17,8 @@ SYSTEM_PROMPT_FILE = Path(__file__).parent / "system_prompt.md"
 def run_agent(question: str, max_steps: int = 5) -> dict:
     """Answer one customer question. Returns the answer plus what happened along the way."""
     client, model = client_for("AGENT")
+    # GPT-6 Luna requires reasoning disabled for tools in Chat Completions.
+    model_options = {"reasoning_effort": "none"} if model.startswith("gpt-6-luna") else {}
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT_FILE.read_text()},
         {"role": "user", "content": question},
@@ -27,7 +29,8 @@ def run_agent(question: str, max_steps: int = 5) -> dict:
 
     for _ in range(max_steps):
         response = client.chat.completions.create(
-            model=model, messages=messages, tools=TOOL_SCHEMAS, temperature=0
+            model=model, messages=messages, tools=TOOL_SCHEMAS, temperature=0,
+            **model_options,
         )
         tokens += response.usage.total_tokens if response.usage else 0
         message = response.choices[0].message

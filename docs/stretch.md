@@ -20,11 +20,11 @@ register(project_name="parcel-pigeon", auto_instrument=True)
 
 Run the evals, then open <http://localhost:6006>. Click into a failure.
 
-## ⚖️ Can you trust the judge?
+## ⚖️ Can you trust the checks?
 
 1. Hand-label 10 answers yourselves (pass/fail).
-2. Compare with the judge. What % do you agree on?
-3. Tweak `rubric.md` and see if agreement goes up.
+2. Compare with the automatic checks. What % do you agree on?
+3. Improve `checks.py` or the cases' check definitions and see if agreement goes up.
 
 ## 🎲 Is it flaky?
 
