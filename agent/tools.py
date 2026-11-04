@@ -14,9 +14,18 @@ def _words(text: str) -> set[str]:
     return set(re.findall(r"[a-z]+", text.lower())) - STOPWORDS
 
 
+# def get_order(order_id: str) -> str:
+#     order = ORDERS.get(order_id.strip().upper())
+#     return json.dumps(order) if order else f"No order found with ID {order_id}."
+
+# Level 4 Addition: Mask user private information
+PRIVATE_FIELDS = {"customer_name", "address"}
 def get_order(order_id: str) -> str:
     order = ORDERS.get(order_id.strip().upper())
-    return json.dumps(order) if order else f"No order found with ID {order_id}."
+    if not order:
+        return f"No order found with ID {order_id}."
+    safe = {k: v for k, v in order.items() if k not in PRIVATE_FIELDS}
+    return json.dumps(safe)
 
 
 def search_policies(query: str) -> str:

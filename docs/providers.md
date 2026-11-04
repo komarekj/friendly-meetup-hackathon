@@ -6,6 +6,8 @@ The project works with **any provider that offers an OpenAI-compatible API**. Se
 AGENT_BASE_URL=...   AGENT_API_KEY=...   AGENT_MODEL=...
 ```
 
+For optional LLM grading (`uv run python -m evals.run --judge`), also set `JUDGE_BASE_URL`, `JUDGE_API_KEY` and `JUDGE_MODEL`. These are not needed for the default checks-only mode. The judge model must support JSON responses; a different, stronger model can be useful.
+
 | Provider | Base URL |
 |---|---|
 | Ollama (local, free) | `http://localhost:11434/v1` |

@@ -3,6 +3,7 @@
   uv run python -m evals.run --label baseline
   uv run python -m evals.run --only late-refund    # one case
   uv run python -m evals.run --batch-size 5        # five cases in parallel (default)
+  uv run python -m evals.run --judge               # also grade answers with an LLM
 """
 
 import argparse
@@ -10,6 +11,7 @@ import json
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 
 from rich.console import Console
@@ -17,6 +19,7 @@ from rich.table import Table
 
 from agent.agent import run_agent
 from evals.checks import CHECKS
+from evals.judge import judge
 
 ROOT = Path(__file__).parent.parent
 console = Console()
@@ -26,7 +29,7 @@ def icon(passed: bool | None) -> str:
     return {True: "✅", False: "❌", None: "➖"}[passed]
 
 
-def evaluate(case: dict) -> dict:
+def evaluate(case: dict, use_judge: bool = False) -> dict:
     try:
         result = run_agent(case["input"])
     except Exception as e:
@@ -40,22 +43,39 @@ def evaluate(case: dict) -> dict:
             console.print(f"[yellow]Unknown check type '{check['type']}' in {case['id']}[/yellow]")
         checks.append({**check, "passed": fn(result, check.get("value")) if fn else None})
 
-    # A case passes if every check that ran passed. Nothing ran = not scored.
+    verdict = None
+    if use_judge and "error" not in result:
+        try:
+            verdict = judge(case, result)
+        except Exception as e:
+            verdict = {"score": None, "passed": False, "reason": f"Judge error: {e}"}
+
+    # Every check and optional judge that ran must pass. Nothing ran = not scored.
     scored = [c["passed"] for c in checks if c["passed"] is not None]
+    if verdict is not None:
+        scored.append(verdict["passed"])
     passed = False if "error" in result else (all(scored) if scored else None)
 
-    return {"case": case, "result": result, "checks": checks, "passed": passed}
+    row = {"case": case, "result": result, "checks": checks, "passed": passed}
+    if use_judge:
+        row["judge"] = verdict
+    return row
 
 
 def print_scorecard(rows: list[dict]) -> None:
     table = Table(title="Scorecard")
-    for column in ["Case", "Pass", "Checks", "Tools used", "Secs"]:
+    show_judge = any("judge" in row for row in rows)
+    judge_columns = ["Judge"] if show_judge else []
+    for column in ["Case", "Pass", "Checks", *judge_columns, "Tools used", "Secs"]:
         table.add_column(column)
     for row in rows:
+        verdict = row.get("judge")
+        judge_cells = [f"{verdict['score']}/5" if verdict and verdict["score"] is not None else "-"] if show_judge else []
         table.add_row(
             row["case"]["id"],
             icon(row["passed"]),
             " ".join(icon(c["passed"]) for c in row["checks"]) or "-",
+            *judge_cells,
             ", ".join(t["name"] for t in row["result"]["tool_calls"]) or "-",
             str(row["result"]["latency_s"]),
         )
@@ -76,16 +96,17 @@ def print_scorecard(rows: list[dict]) -> None:
     )
 
 
-def evaluate_cases(cases: list[dict], batch_size: int = 5) -> list[dict]:
+def evaluate_cases(cases: list[dict], batch_size: int = 5, use_judge: bool = False) -> list[dict]:
     """Evaluate parallel batches, keeping results in the original case order."""
     if batch_size < 1:
         raise ValueError("batch_size must be at least 1")
     rows = []
+    evaluate_case = partial(evaluate, use_judge=True) if use_judge else evaluate
     with ThreadPoolExecutor(max_workers=batch_size) as executor:
         for start in range(0, len(cases), batch_size):
             batch = cases[start:start + batch_size]
             with console.status(f"Running cases {start + 1}–{start + len(batch)} of {len(cases)}..."):
-                rows.extend(executor.map(evaluate, batch))
+                rows.extend(executor.map(evaluate_case, batch))
     return rows
 
 
@@ -94,6 +115,8 @@ def main() -> None:
     parser.add_argument("--label", default="run", help="name for this run, e.g. baseline")
     parser.add_argument("--cases", default=ROOT / "evals" / "cases.jsonl", type=Path)
     parser.add_argument("--only", help="run a single case by id")
+    parser.add_argument("--judge", action="store_true",
+                        help="also grade answers with the LLM configured by JUDGE_* (default: checks only)")
     parser.add_argument("--batch-size", type=int, default=5,
                         help="cases to run in parallel per batch (default: 5; use 1 for sequential)")
     args = parser.parse_args()
@@ -107,7 +130,7 @@ def main() -> None:
     if not cases:
         parser.error("no matching cases found")
 
-    rows = evaluate_cases(cases, batch_size=args.batch_size)
+    rows = evaluate_cases(cases, batch_size=args.batch_size, use_judge=args.judge)
 
     print_scorecard(rows)
 
