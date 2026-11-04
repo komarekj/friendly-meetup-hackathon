@@ -125,7 +125,7 @@ def propose_prompt(current, failed):
         for item in diagnosis
     ):
         raise ValueError("Optimizer returned an invalid diagnosis")
-    return proposal
+    return {key: proposal[key] for key in ("diagnosis", "plan", "new_prompt")}
 
 
 def run_improvement(rounds=3, *, prompt=PROMPT, results=RESULTS, cases=CASES, batch_size=5):
@@ -168,10 +168,11 @@ def _run_improvement(rounds, *, prompt, results, cases, batch_size):
         rows, best, output = evaluate(0)
         scored_ids = {row["case"]["id"] for row in rows if row["passed"] is not None}
         log(0, "baseline", **best, failures=failures(rows), output=output)
-        for rnd in range(1, rounds + 1):
+        for next_round in range(1, rounds + 1):
             failed = failures(rows)
             if not failed:
                 break
+            rnd = next_round
             if prompt.read_bytes() != current:
                 raise RuntimeError("System prompt changed outside this loop; stopping without overwriting it")
             log(rnd, "thinking", n_failures=len(failed))

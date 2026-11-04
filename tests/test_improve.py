@@ -145,9 +145,20 @@ class ProposalTests(unittest.TestCase):
                 client = Mock()
                 client.chat.completions.create.return_value = SimpleNamespace(
                     choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
-                with patch("agent.llm.client_for", return_value=(client, "qwen2.5:7b")):
+                provider = SimpleNamespace(client_for=Mock(return_value=(client, "qwen2.5:7b")))
+                with patch.dict("sys.modules", {"agent.llm": provider}):
                     with self.assertRaises(ValueError):
                         improve.propose_prompt("Original", [])
+
+    def test_valid_proposal_cannot_override_log_metadata(self):
+        proposal = {"new_prompt": "Keep privacy; use tools", "plan": "Require order lookup",
+                    "diagnosis": [{"case": "refund", "why_it_failed": "No order lookup"}]}
+        client = Mock()
+        client.chat.completions.create.return_value = SimpleNamespace(choices=[SimpleNamespace(
+            message=SimpleNamespace(content=json.dumps({**proposal, "run_id": "spoofed", "stage": "done"})))])
+        provider = SimpleNamespace(client_for=Mock(return_value=(client, "qwen2.5:7b")))
+        with patch.dict("sys.modules", {"agent.llm": provider}):
+            self.assertEqual(improve.propose_prompt("Original", []), proposal)
 
 
 if __name__ == "__main__":
