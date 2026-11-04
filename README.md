@@ -13,7 +13,8 @@
 - **A tool-level privacy fix:** `get_order` removes `customer_name` and `address` before data reaches the model.
 - **Parallel evaluations** in batches of five, saved JSONL results, category breakdowns, latency/token reporting, and before/after comparisons.
 - **An LLM-judge experiment** using a 1–5 rubric and retrieved evidence. It is part of the demo history; the current runner is checks-only.
-- **A Streamlit dashboard** for scorecards, comparisons, and case inspection, delivered in [UI PR #3](https://github.com/komarekj/friendly-meetup-hackathon/pull/3). See the [dashboard walkthrough](docs/walkthrough.md#6-open-the-dashboard) for its separate setup.
+- **A Streamlit dashboard** for scorecards, comparisons, case inspection, and live self-improvement. See the [dashboard walkthrough](docs/walkthrough.md#6-open-the-dashboard).
+- **A self-improvement loop** that asks qwen to diagnose failures and rewrite the system prompt, tests the candidate, and keeps only strict scored pass-rate gains. Backups, rollback, and run history are automatic. See the [setup and live-demo guide](docs/self-improvement.md).
 
 ## Quick start
 
@@ -41,6 +42,19 @@ uv run python -m evals.run --batch-size 1 --label sequential
 Each run prints a scorecard and saves `results/<timestamp>-<label>.jsonl`. The current CLI has **no `--judge` or `--no-judge` option** and needs no judge model.
 
 ## Read the results
+
+To watch prompt optimization, configure the optional `JUDGE_*` optimizer settings
+as described in the [self-improvement guide](docs/self-improvement.md), then run
+these in separate terminals from the same checkout:
+
+```bash
+uv run --group ui streamlit run ui/ui.py
+uv run python improve.py 3
+```
+
+The optimizer changes `agent/system_prompt.md`; evaluation scoring stays
+checks-only. Its gains are measured on the optimization cases, not a held-out
+test set.
 
 | Signal | Meaning |
 |---|---|
@@ -83,6 +97,7 @@ These are slide-reported results, not fresh measurements of this checkout. The l
 | [evals/cases.jsonl](evals/cases.jsonl) | Evaluation scenarios |
 | [evals/checks.py](evals/checks.py) | Deterministic check implementations |
 | [evals/run.py](evals/run.py) / [evals/compare.py](evals/compare.py) | Run and compare evaluations |
+| [improve.py](improve.py) / [ui/ui.py](ui/ui.py) | Prompt optimization loop and live dashboard |
 | [tests/](tests/) | Unit coverage for checks, cases, batching, and privacy filtering |
 | [docs/walkthrough.md](docs/walkthrough.md) | Our changes, runnable tour, and demo narrative |
 
